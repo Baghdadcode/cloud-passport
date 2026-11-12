@@ -16,7 +16,7 @@ The `iphone-web-app` folder has to be opened once from a web address. Then:
 Data tab > Export on one device, then Import on the other. Import replaces progress on that device.
 
 ## What is inside
-- 297 practice questions in 13 chapters, each with an explanation, plus a cheat sheet per chapter.
+- 372 practice questions in 14 chapters (311 from the MIT question repo, 61 original ones written for this app), each with an explanation, plus a cheat sheet per chapter.
 - Practice: the answer and explanation appear right after you answer.
 - Smart repetition: wrong answers come back the same day; right answers come back after 1, 3, 7, 14 and 30 days.
 - Mock exam: 65 questions, 130 minutes, flag and jump between questions, estimated score against 720.

@@ -25,12 +25,19 @@ md = lambda s: markdown.markdown(s, extensions=["tables", "sane_lists"])
 NO_SHUFFLE = re.compile(r"\b(all|none|both) of the above\b|\b(both )?[A-F] and [A-F]\b|^(all|none|both) of", re.I)
 
 questions, chapters, skipped = [], [], []
+sys.path.insert(0, str(pathlib.Path(__file__).parent))
+from originals import EXTRA as _E
+B_EXTRA = {}
+for row in _E: B_EXTRA.setdefault(row[0], []).append(row[1:])
 for folder, cid, title, color in CHAPTERS:
-    text = (SRC / folder / "PRACTICE-QUESTIONS.md").read_text(encoding="utf-8")
+  n = 0
+  for fname, pre in (("PRACTICE-QUESTIONS.md", ""), ("README.md", "r")):
+    path = SRC / folder / fname
+    if not path.exists(): continue
+    text = path.read_text(encoding="utf-8")
     blocks = re.split(r"^###\s+Question\s+(\d+)[^\n]*\n", text, flags=re.M)
-    n = 0
     for i in range(1, len(blocks), 2):
-        num, body = blocks[i], blocks[i + 1]
+        num, body = pre + blocks[i], blocks[i + 1]
         body = body.split("\n---")[0] if "</details>" in body.split("\n---")[0] else body
         m = re.search(r"^(.*?)\n\s*A[.)]\s", body, re.S)
         ans = re.search(r"\*\*Answer:\s*([A-F](?:\s*,\s*[A-F])*)\s*\*\*", body)
@@ -39,6 +46,7 @@ for folder, cid, title, color in CHAPTERS:
             skipped.append(f"{folder} Q{num}: no stem/answer")
             continue
         stem = re.sub(r"\*\*Options:?\*\*:?", "", m.group(1)).strip()
+        if stem.startswith("**") and stem.endswith("**") and stem.count("**") == 2: stem = stem[2:-2]
         if ans:
             correct_letters = ans.group(1).split(",")
             expl = body.split(ans.group(0), 1)[1].split("</details>")[0]
@@ -65,9 +73,14 @@ for folder, cid, title, color in CHAPTERS:
             "x": re.sub(r"(\s*<hr />)+\s*$", "", md(expl)),
             "fixed": any(NO_SHUFFLE.search(t) for t in texts),
         })
-    lesson_path = SRC / folder / "ULTRA-FAST-LEARN.md"
-    lesson = md(re.sub(r"^# .*\n", "", lesson_path.read_text(encoding="utf-8"), count=1)) if lesson_path.exists() else ""
-    chapters.append({"id": cid, "title": title, "color": color, "count": n, "lesson": lesson})
+  extra = B_EXTRA.get(cid, [])
+  for k, (stem, opts_, ans_, expl_) in enumerate(extra, 1):
+      n += 1
+      questions.append({"id": f"{cid}-o{k}", "c": cid, "q": md(stem), "o": [md(t).removeprefix("<p>").removesuffix("</p>") for t in opts_],
+                        "a": ans_, "x": md(expl_) + "<p><em>Original question written for this app.</em></p>", "fixed": False})
+  lesson_path = SRC / folder / "ULTRA-FAST-LEARN.md"
+  lesson = md(re.sub(r"^# .*\n", "", lesson_path.read_text(encoding="utf-8"), count=1)) if lesson_path.exists() else ""
+  chapters.append({"id": cid, "title": title, "color": color, "count": n, "lesson": lesson})
 
 OUT.write_text("window.BANK=" + json.dumps({"chapters": chapters, "questions": questions}, ensure_ascii=False, separators=(",", ":")) + ";", encoding="utf-8")
 print(len(questions), "questions;", sum(len(q["a"]) > 1 for q in questions), "multi;", sum(q["fixed"] for q in questions), "fixed")
